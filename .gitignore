@@ -1,0 +1,14 @@
+/target
+/result
+/result-lib
+.direnv
+
+/.pre-commit-config.yaml
+
+
+# local development
+CLAUDE.local.md
+.settings.local.json
+local/
+*.local
+.claude/settings.local.json

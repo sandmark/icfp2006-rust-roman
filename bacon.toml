@@ -1,0 +1,4 @@
+[jobs.test-doc]
+command = ["sh", "-c", "cargo test 2>&1 && cargo doc --document-private-items 2>&1"]
+need_stdout = true
+watch = ["src"]
