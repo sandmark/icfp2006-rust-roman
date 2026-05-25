@@ -1,9 +1,9 @@
 [package]
 authors = ["sandmark <sandmark@disroot.org>"]
-edition = "2021"
+edition = "2024"
 # If you change the name here, you must also do it in flake.nix (and run `cargo generate-lockfile` afterwards)
 name = "icfp2006-rust-roman"
-description = "A simple Rust project using Nix"
+description = "Roman Decimal Converter for UMIX QvickBasic"
 version = "0.1.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
