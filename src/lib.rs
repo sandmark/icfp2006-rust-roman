@@ -41,3 +41,10 @@
 //! 50       REM  | This program is for educational purposes only! |
 //! 55       REM  +------------------------------------------------+
 //! ```
+
+// TODO: Scan(字句解析/str) -> Parse(ドメイン/境界/型) -> Logic(変換)
+// TODO: enum RomanError (impl Display, Error)
+// TODO: Decimal newtype + TryFrom<&str> / TryFrom<u16>
+// TODO: Roman newtype + TryFrom<&str>
+// TODO: From<Decimal> for Roman / From<Roman> for Decimal
+// TODO: Unittest
