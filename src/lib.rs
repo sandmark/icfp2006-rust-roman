@@ -106,52 +106,108 @@ impl From<Decimal> for Roman<'_> {
 mod tests {
     use super::*;
 
-    // 基本記号: ローマ数字の単一記号と対応する10進数。
-    #[test]
-    fn converts_basic_symbols() {
-        assert_eq!(Roman::from(Decimal(1)).0, "I");
-        assert_eq!(Roman::from(Decimal(5)).0, "V");
-        assert_eq!(Roman::from(Decimal(10)).0, "X");
-        assert_eq!(Roman::from(Decimal(50)).0, "L");
-        assert_eq!(Roman::from(Decimal(100)).0, "C");
-        assert_eq!(Roman::from(Decimal(500)).0, "D");
-        assert_eq!(Roman::from(Decimal(1000)).0, "M");
-    }
+    mod from_decimal {
+        use super::*;
 
-    // 加法的合成: 同じ記号を繰り返して大きい数を表す (例: III = 1+1+1)。
-    #[test]
-    fn converts_additive_combinations() {
-        assert_eq!(Roman::from(Decimal(2)).0, "II");
-        assert_eq!(Roman::from(Decimal(3)).0, "III");
-        assert_eq!(Roman::from(Decimal(6)).0, "VI"); // 5 + 1
-        assert_eq!(Roman::from(Decimal(7)).0, "VII"); // 5 + 1 + 1
-        assert_eq!(Roman::from(Decimal(8)).0, "VIII"); // 5 + 1 + 1 + 1
-    }
+        // 基本記号: ローマ数字の単一記号と対応する10進数。
+        #[test]
+        fn converts_basic_symbols() {
+            assert_eq!(Roman::from(Decimal(1)).0, "I");
+            assert_eq!(Roman::from(Decimal(5)).0, "V");
+            assert_eq!(Roman::from(Decimal(10)).0, "X");
+            assert_eq!(Roman::from(Decimal(50)).0, "L");
+            assert_eq!(Roman::from(Decimal(100)).0, "C");
+            assert_eq!(Roman::from(Decimal(500)).0, "D");
+            assert_eq!(Roman::from(Decimal(1000)).0, "M");
+        }
 
-    // 減法的記法: 小さい記号を大きい記号の前に置いて引き算を表す (例: IV = 5-1)。
-    #[test]
-    fn converts_subtractive_notation() {
-        assert_eq!(Roman::from(Decimal(4)).0, "IV"); // 5 - 1
-        assert_eq!(Roman::from(Decimal(9)).0, "IX"); // 10 - 1
-        assert_eq!(Roman::from(Decimal(40)).0, "XL"); // 50 - 10
-        assert_eq!(Roman::from(Decimal(90)).0, "XC"); // 100 - 10
-        assert_eq!(Roman::from(Decimal(400)).0, "CD"); // 500 - 100
-        assert_eq!(Roman::from(Decimal(900)).0, "CM"); // 1000 - 100
-    }
+        // 加法的合成: 同じ記号を繰り返して大きい数を表す (例: III = 1+1+1)。
+        #[test]
+        fn converts_additive_combinations() {
+            assert_eq!(Roman::from(Decimal(2)).0, "II");
+            assert_eq!(Roman::from(Decimal(3)).0, "III");
+            assert_eq!(Roman::from(Decimal(6)).0, "VI"); // 5 + 1
+            assert_eq!(Roman::from(Decimal(7)).0, "VII"); // 5 + 1 + 1
+            assert_eq!(Roman::from(Decimal(8)).0, "VIII"); // 5 + 1 + 1 + 1
+        }
 
-    // 複合: 複数の桁が組み合わさった数 (千の位 + 百の位 + 十の位 + 一の位)。
-    #[test]
-    fn converts_composite_numbers() {
-        assert_eq!(Roman::from(Decimal(14)).0, "XIV"); // X + IV
-        assert_eq!(Roman::from(Decimal(42)).0, "XLII"); // XL + II
-        assert_eq!(Roman::from(Decimal(99)).0, "XCIX"); // XC + IX
-        assert_eq!(Roman::from(Decimal(1984)).0, "MCMLXXXIV"); // M + CM + LXXX + IV
-    }
+        // 減法的記法: 小さい記号を大きい記号の前に置いて引き算を表す (例: IV = 5-1)。
+        #[test]
+        fn converts_subtractive_notation() {
+            assert_eq!(Roman::from(Decimal(4)).0, "IV"); // 5 - 1
+            assert_eq!(Roman::from(Decimal(9)).0, "IX"); // 10 - 1
+            assert_eq!(Roman::from(Decimal(40)).0, "XL"); // 50 - 10
+            assert_eq!(Roman::from(Decimal(90)).0, "XC"); // 100 - 10
+            assert_eq!(Roman::from(Decimal(400)).0, "CD"); // 500 - 100
+            assert_eq!(Roman::from(Decimal(900)).0, "CM"); // 1000 - 100
+        }
 
-    // 境界値: 仕様範囲 (1..=3999) の最小値と最大値。
-    #[test]
-    fn converts_boundary_values() {
-        assert_eq!(Roman::from(Decimal(1)).0, "I");
-        assert_eq!(Roman::from(Decimal(3999)).0, "MMMCMXCIX");
+        // 複合: 複数の桁が組み合わさった数 (千の位 + 百の位 + 十の位 + 一の位)。
+        #[test]
+        fn converts_composite_numbers() {
+            assert_eq!(Roman::from(Decimal(14)).0, "XIV"); // X + IV
+            assert_eq!(Roman::from(Decimal(42)).0, "XLII"); // XL + II
+            assert_eq!(Roman::from(Decimal(99)).0, "XCIX"); // XC + IX
+            assert_eq!(Roman::from(Decimal(1984)).0, "MCMLXXXIV"); // M + CM + LXXX + IV
+        }
+
+        // 境界値: 仕様範囲 (1..=3999) の最小値と最大値。
+        #[test]
+        fn converts_boundary_values() {
+            assert_eq!(Roman::from(Decimal(1)).0, "I");
+            assert_eq!(Roman::from(Decimal(3999)).0, "MMMCMXCIX");
+        }
+    }
+    mod from_roman {
+        use super::*;
+
+        // 基本記号: ローマ数字の単一記号と対応する10進数。
+        #[test]
+        fn converts_decimal_basic_symbols() {
+            assert_eq!(Decimal::from(Roman(Cow::from("I"))).0, 1);
+            assert_eq!(Decimal::from(Roman(Cow::from("V"))).0, 5);
+            assert_eq!(Decimal::from(Roman(Cow::from("X"))).0, 10);
+            assert_eq!(Decimal::from(Roman(Cow::from("L"))).0, 50);
+            assert_eq!(Decimal::from(Roman(Cow::from("C"))).0, 100);
+            assert_eq!(Decimal::from(Roman(Cow::from("D"))).0, 500);
+            assert_eq!(Decimal::from(Roman(Cow::from("M"))).0, 1000);
+        }
+
+        // 加法的合成: 同じ記号を繰り返して大きい数を表す (例: III = 1+1+1)。
+        #[test]
+        fn converts_decimal_additive_combinations() {
+            assert_eq!(Decimal::from(Roman(Cow::from("II"))).0, 2);
+            assert_eq!(Decimal::from(Roman(Cow::from("III"))).0, 3);
+            assert_eq!(Decimal::from(Roman(Cow::from("VI"))).0, 6);
+            assert_eq!(Decimal::from(Roman(Cow::from("VII"))).0, 7);
+            assert_eq!(Decimal::from(Roman(Cow::from("VIII"))).0, 8);
+        }
+
+        // 減法的記法: 小さい記号を大きい記号の前に置いて引き算を表す (例: IV = 5-1)。
+        #[test]
+        fn converts_decimal_subtractive_notation() {
+            assert_eq!(Decimal::from(Roman(Cow::from("IV"))).0, 4);
+            assert_eq!(Decimal::from(Roman(Cow::from("IX"))).0, 9);
+            assert_eq!(Decimal::from(Roman(Cow::from("XL"))).0, 40);
+            assert_eq!(Decimal::from(Roman(Cow::from("XC"))).0, 90);
+            assert_eq!(Decimal::from(Roman(Cow::from("CD"))).0, 400);
+            assert_eq!(Decimal::from(Roman(Cow::from("CM"))).0, 900);
+        }
+
+        // 複合: 複数の桁が組み合わさった数。
+        #[test]
+        fn converts_decimal_composite_numbers() {
+            assert_eq!(Decimal::from(Roman(Cow::from("XIV"))).0, 14);
+            assert_eq!(Decimal::from(Roman(Cow::from("XLII"))).0, 42);
+            assert_eq!(Decimal::from(Roman(Cow::from("XCIX"))).0, 99);
+            assert_eq!(Decimal::from(Roman(Cow::from("MCMLXXXIV"))).0, 1984);
+        }
+
+        // 境界値: 仕様範囲 (1..=3999) の最小値と最大値。
+        #[test]
+        fn converts_decimal_boundary_values() {
+            assert_eq!(Decimal::from(Roman(Cow::from("I"))).0, 1);
+            assert_eq!(Decimal::from(Roman(Cow::from("MMMCMXCIX"))).0, 3999);
+        }
     }
 }
