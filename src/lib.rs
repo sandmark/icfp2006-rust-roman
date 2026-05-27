@@ -46,7 +46,6 @@
 // TODO: enum RomanError (impl Display, Error)
 // TODO: Decimal newtype + TryFrom<&str> / TryFrom<u16>
 // TODO: Roman newtype + TryFrom<&str>
-// TODO: From<Decimal> for Roman / From<Roman> for Decimal
 
 use std::borrow::Cow;
 
@@ -67,6 +66,12 @@ const SYMBOLS: [(u16, &str); 13] = [
     (1, "I"),
 ];
 
+/// ローマ数字型。
+struct Roman<'a>(Cow<'a, str>);
+
+/// 1..=3999 の10進数型。
+struct Decimal(u16);
+
 /// ローマ数字に変換可能 (1..=3999) な `n` を受け取り、
 /// [SYMBOLS] からもっとも大きな数と結び付いたタプルを返す。
 ///
@@ -79,12 +84,6 @@ fn next_symbol(n: u16) -> (u16, &'static str) {
         .copied()
         .expect("n must be >= 1")
 }
-
-/// ローマ数字型。
-struct Roman<'a>(Cow<'a, str>);
-
-/// 1..=3999 の10進数型。
-struct Decimal(u16);
 
 /// 10進数 [Decimal] をローマ数字 [Roman] に変換する [From] トレイト実装。
 impl From<Decimal> for Roman<'_> {
@@ -99,6 +98,54 @@ impl From<Decimal> for Roman<'_> {
         }
 
         Self(Cow::from(buf))
+    }
+}
+
+/// ローマ数字を構成する記号 `c` を受け取り、
+/// [SYMBOLS] から一致するタプルを返す。
+/// NOTE: 減算則には対応していない。
+///
+/// [SYMBOLS] に `c` が存在しない場合は論理的バグであるため
+/// 明示的に panic するものとする。
+fn value_of(c: char) -> u16 {
+    SYMBOLS
+        .iter()
+        .filter(|(_, sym)| sym.len() == 1) // FIXME: 本来不要。 [SYMBOLS] の見直しをすること。
+        .find_map(|(value, sym)| sym.starts_with(c).then_some(*value))
+        .expect("char must be Roman Symbol")
+}
+
+/// ローマ数字文字列 [Roman] を10進数 [Decimal] に変換する [From] トレイト実装。
+impl From<Roman<'_>> for Decimal {
+    fn from(roman: Roman) -> Self {
+        let mut total: u16 = 0;
+        let mut prev_value: Option<u16> = None;
+
+        for c in roman.0.chars() {
+            let value = value_of(c);
+
+            total += value;
+
+            if let Some(prev) = prev_value
+                && value > prev
+            {
+                // NOTE: 減算則
+                //
+                // Example:
+                // ```text
+                // XIV
+                //   ^
+                //   現在の if ブロック
+                // ```
+                //
+                // 上記のとき既に `prev_value` (I = 1) は `total` に加算されて 11 になっている。
+                // `value` (V = 5) も加算して 16 にした上で
+                // `prev_value * 2` を減算することで 14 となり、減算則の機能を満たす。
+                total -= prev * 2;
+            }
+            prev_value = Some(value);
+        }
+        Self(total)
     }
 }
 
