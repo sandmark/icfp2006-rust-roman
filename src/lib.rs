@@ -50,18 +50,57 @@
 
 use std::borrow::Cow;
 
+/// ローマ数字 <-> 10進数相互変換テーブル
+const SYMBOLS: [(u16, &str); 13] = [
+    (1000, "M"),
+    (900, "CM"),
+    (500, "D"),
+    (400, "CD"),
+    (100, "C"),
+    (90, "XC"),
+    (50, "L"),
+    (40, "XL"),
+    (10, "X"),
+    (9, "IX"),
+    (5, "V"),
+    (4, "IV"),
+    (1, "I"),
+];
+
+/// ローマ数字に変換可能 (1..=3999) な `n` を受け取り、
+/// [SYMBOLS] からもっとも大きな数と結び付いたタプルを返す。
+///
+/// [SYMBOLS] に候補が存在しない場合は論理的バグであるため
+/// 明示的に panic  するものとする。
+fn next_symbol(n: u16) -> (u16, &'static str) {
+    SYMBOLS
+        .iter()
+        .find(|(v, _)| n >= *v)
+        .copied()
+        .expect("n must be >= 1")
+}
+
 /// ローマ数字型。
 struct Roman<'a>(Cow<'a, str>);
 
-/// 10進数 [Decimal] をローマ数字 [Roman] に変換する [From] トレイト実装。
-impl From<Decimal> for Roman<'_> {
-    fn from(source: Decimal) -> Self {
-        todo!()
-    }
-}
-
 /// 1..=3999 の10進数型。
 struct Decimal(u16);
+
+/// 10進数 [Decimal] をローマ数字 [Roman] に変換する [From] トレイト実装。
+impl From<Decimal> for Roman<'_> {
+    fn from(decimal: Decimal) -> Self {
+        let mut buf = String::new();
+        let mut remaining = decimal.0;
+
+        while remaining > 0 {
+            let (amount, symbol) = next_symbol(remaining);
+            remaining -= amount;
+            buf.push_str(symbol);
+        }
+
+        Self(Cow::from(buf))
+    }
+}
 
 #[cfg(test)]
 mod tests {
