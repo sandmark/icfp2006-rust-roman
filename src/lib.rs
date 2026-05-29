@@ -44,7 +44,6 @@
 
 // TODO: Scan(字句解析/str) -> Parse(ドメイン/境界/型) -> Logic(変換)
 // TODO: enum RomanError (impl Display, Error)
-// TODO: Decimal newtype + TryFrom<&str> / TryFrom<u16>
 // TODO: Roman newtype + TryFrom<&str>
 
 use std::borrow::Cow;
@@ -149,10 +148,22 @@ impl From<Roman<'_>> for Decimal {
     }
 }
 
+/// [str] を [Decimal] に変換する。
+/// 文字列はローマ数字に変換できる 1..=3999 の範囲内でなければならず、
+/// 空文字列や数値化できない文字列はエラーを返す。
+///
+/// TODO: Error { kind: InvalidDigit }
+/// TODO: Error { kind: Empty }
+/// TODO: Error { kind: OutOfRange }
 impl TryFrom<&str> for Decimal {
     type Error = String;
     fn try_from(value: &str) -> Result<Decimal, Self::Error> {
-        todo!()
+        let n = value.parse::<u16>().map_err(|e| e.to_string())?;
+        if !(1..=3999).contains(&n) {
+            return Err("Out of Range".to_string());
+        }
+
+        Ok(Decimal(n))
     }
 }
 
