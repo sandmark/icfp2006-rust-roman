@@ -46,7 +46,7 @@
 // TODO: enum RomanError (impl Display, Error)
 // TODO: Roman newtype + TryFrom<&str>
 
-use std::{borrow::Cow, num::IntErrorKind};
+use std::{borrow::Cow, num::ParseIntError};
 
 /// ローマ数字 <-> 10進数相互変換テーブル
 const SYMBOLS: [(u16, &str); 13] = [
@@ -151,33 +151,32 @@ impl From<Roman<'_>> for Decimal {
 
 #[derive(Debug, PartialEq)]
 /// [Decimal] の [TryFrom] (&str) で使用されるエラーバリアント。
+///
+/// - OutOfRange: 1..=3999 でないときのドメインエラー。
+/// - Parse(_): `parse()` したときのエラーを閉じ込める非ドメインエラー。
 enum ParseDecimalError {
-    Empty,
-    InvalidDigit(String),
     OutOfRange(u16),
+    Parse(ParseIntError),
+}
+
+/// [ParseIntError] を [ParseDecimalError] に変換する。
+///
+/// NOTE: [Decimal::try_from] で parse()? するため。
+impl From<ParseIntError> for ParseDecimalError {
+    fn from(value: ParseIntError) -> Self {
+        ParseDecimalError::Parse(value)
+    }
 }
 
 /// [str] を [Decimal] に変換する。
 ///
-/// 以下のケースでエラーとなる:
-/// - ローマ数字に変換できる範囲 1..=3999 でなければ [ParseDecimalError::OutOfRange]
-/// - 空文字列は [ParseDecimalError::Empty]
-/// - 数値に変換できなければ [ParseDecimalError::InvalidDigit]
+/// - ローマ数字に変換できる範囲 1..=3999 でない(ドメインエラー) -> [ParseDecimalError::OutOfRange]
+/// - 空文字列または数値に変換できない `parse()` の非ドメインエラー -> [ParseDecimalError::Parse]
 impl TryFrom<&str> for Decimal {
     type Error = ParseDecimalError;
     fn try_from(value: &str) -> Result<Decimal, Self::Error> {
-        let n = match value.parse::<u16>() {
-            Ok(n) => n,
-            Err(e) => match e.kind() {
-                IntErrorKind::InvalidDigit => {
-                    return Err(ParseDecimalError::InvalidDigit(value.to_string()));
-                }
-                IntErrorKind::Empty => {
-                    return Err(ParseDecimalError::Empty);
-                }
-                _ => todo!(),
-            },
-        };
+        let n = value.parse::<u16>()?;
+
         if !(1..=3999).contains(&n) {
             return Err(ParseDecimalError::OutOfRange(n));
         }
