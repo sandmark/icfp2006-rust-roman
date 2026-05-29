@@ -135,6 +135,13 @@ impl From<Roman<'_>> for Decimal {
     }
 }
 
+impl TryFrom<&str> for Roman<'_> {
+    type Error = String;
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        todo!()
+    }
+}
+
 #[derive(Debug, PartialEq)]
 /// [Decimal] の [TryFrom] (&str) で使用されるエラーバリアント。
 ///
@@ -175,6 +182,38 @@ impl TryFrom<&str> for Decimal {
 mod tests {
     use super::*;
 
+    mod try_from_roman {
+        use super::*;
+
+        // 正常系: 妥当なローマ数字の文字列は Ok(Roman) に変換される。
+        #[test]
+        fn converts_valid_roman_string() {
+            assert_eq!(Roman::try_from("I").unwrap().0, "I");
+            assert_eq!(Roman::try_from("III").unwrap().0, "III");
+            assert_eq!(Roman::try_from("XIV").unwrap().0, "XIV");
+            assert_eq!(Roman::try_from("MMMCMXCIX").unwrap().0, "MMMCMXCIX");
+        }
+
+        // 異常系: 不正なローマ数字はエラー。
+        #[test]
+        fn rejects_malformed_input() {
+            assert!(Roman::try_from("IIII").is_err());
+            assert!(Roman::try_from("VIM").is_err());
+            assert!(Roman::try_from("XIVI").is_err());
+        }
+
+        // 異常系: 空文字列。
+        #[test]
+        fn rejects_empty_input() {
+            assert!(Roman::try_from("").is_err());
+        }
+
+        // 異常系: ローマ字シンボルではない文字列。
+        #[test]
+        fn rejects_not_symbols() {
+            assert!(Roman::try_from("1").is_err());
+        }
+    }
     mod try_from_decimal {
         use super::*;
 
@@ -212,7 +251,6 @@ mod tests {
             ));
         }
     }
-
     mod from_decimal {
         use super::*;
 
