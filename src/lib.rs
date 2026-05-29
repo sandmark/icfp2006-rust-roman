@@ -149,9 +149,47 @@ impl From<Roman<'_>> for Decimal {
     }
 }
 
+impl TryFrom<&str> for Decimal {
+    type Error = String;
+    fn try_from(value: &str) -> Result<Decimal, Self::Error> {
+        todo!()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    mod try_from_decimal {
+        use super::*;
+
+        // 正常系: 妥当な10進数文字列は Ok(Decimal) に変換される。
+        #[test]
+        fn converts_valid_decimal_string() {
+            assert_eq!(Decimal::try_from("1").unwrap().0, 1);
+            assert_eq!(Decimal::try_from("42").unwrap().0, 42);
+            assert_eq!(Decimal::try_from("3999").unwrap().0, 3999);
+        }
+
+        // 異常系: ローマ数字の範囲外の文字列はエラー。
+        #[test]
+        fn rejects_out_of_range() {
+            assert!(Decimal::try_from("0").is_err());
+            assert!(Decimal::try_from("4000").is_err());
+        }
+
+        // 異常系: 空文字列はエラー。
+        #[test]
+        fn rejects_empty_input() {
+            assert!(Decimal::try_from("").is_err());
+        }
+
+        // 異常系: 数値にできない文字列はエラー。
+        #[test]
+        fn rejects_non_numeric() {
+            assert!(Decimal::try_from("XIV").is_err());
+        }
+    }
 
     mod from_decimal {
         use super::*;
