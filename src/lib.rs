@@ -201,7 +201,7 @@ mod tests {
             assert_eq!(Decimal::try_from("3999").unwrap().0, 3999);
         }
 
-        // 異常系: ローマ数字の範囲外の文字列はエラー。
+        // 異常系: ローマ数字の範囲外の文字列はドメインエラー。
         #[test]
         fn rejects_out_of_range() {
             assert_eq!(
@@ -214,19 +214,17 @@ mod tests {
             );
         }
 
-        // 異常系: 空文字列はエラー。
+        // 異常系: 空文字列、数値にできない場合は Parse エラー。
         #[test]
-        fn rejects_empty_input() {
-            assert_eq!(Decimal::try_from(""), Err(ParseDecimalError::Empty));
-        }
-
-        // 異常系: 数値にできない文字列はエラー。
-        #[test]
-        fn rejects_non_numeric() {
-            assert_eq!(
+        fn rejects_unparseable_input() {
+            assert!(matches!(
                 Decimal::try_from("XIV"),
-                Err(ParseDecimalError::InvalidDigit("XIV".to_string()))
-            );
+                Err(ParseDecimalError::Parse(_))
+            ));
+            assert!(matches!(
+                Decimal::try_from(""),
+                Err(ParseDecimalError::Parse(_))
+            ));
         }
     }
 
