@@ -185,20 +185,29 @@ mod tests {
         // 異常系: ローマ数字の範囲外の文字列はエラー。
         #[test]
         fn rejects_out_of_range() {
-            assert!(Decimal::try_from("0").is_err());
-            assert!(Decimal::try_from("4000").is_err());
+            assert_eq!(
+                Decimal::try_from("0"),
+                Err(ParseDecimalError::OutOfRange(0))
+            );
+            assert_eq!(
+                Decimal::try_from("4000"),
+                Err(ParseDecimalError::OutOfRange(4000))
+            );
         }
 
         // 異常系: 空文字列はエラー。
         #[test]
         fn rejects_empty_input() {
-            assert!(Decimal::try_from("").is_err());
+            assert_eq!(Decimal::try_from(""), Err(ParseDecimalError::Empty));
         }
 
         // 異常系: 数値にできない文字列はエラー。
         #[test]
         fn rejects_non_numeric() {
-            assert!(Decimal::try_from("XIV").is_err());
+            assert_eq!(
+                Decimal::try_from("XIV"),
+                Err(ParseDecimalError::InvalidDigit("XIV".to_string()))
+            );
         }
     }
 
