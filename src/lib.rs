@@ -115,37 +115,23 @@ fn value_of(c: char) -> u16 {
         .expect("char must be Roman Symbol")
 }
 
+/// ローマ数字文字列を先頭から走査し、各トークンの値だけを順に返すイテレータ。
+/// 先頭に一致する記号がなくなった時点で停止する。
+fn token_values(roman: &str) -> impl Iterator<Item = u16> + '_ {
+    let mut rest = roman;
+    std::iter::from_fn(move || {
+        let (value, next) = SYMBOLS
+            .iter()
+            .find_map(|(value, sym)| rest.strip_prefix(sym).map(|tail| (*value, tail)))?;
+        rest = next;
+        Some(value)
+    })
+}
+
 /// ローマ数字文字列 [Roman] を10進数 [Decimal] に変換する [From] トレイト実装。
 impl From<Roman<'_>> for Decimal {
     fn from(roman: Roman) -> Self {
-        let mut total: u16 = 0;
-        let mut prev_value: Option<u16> = None;
-
-        for c in roman.0.chars() {
-            let value = value_of(c);
-
-            total += value;
-
-            if let Some(prev) = prev_value
-                && value > prev
-            {
-                // NOTE: 減算則
-                //
-                // Example:
-                // ```text
-                // XIV
-                //   ^
-                //   現在の if ブロック
-                // ```
-                //
-                // 上記のとき既に `prev_value` (I = 1) は `total` に加算されて 11 になっている。
-                // `value` (V = 5) も加算して 16 にした上で
-                // `prev_value * 2` を減算することで 14 となり、減算則の機能を満たす。
-                total -= prev * 2;
-            }
-            prev_value = Some(value);
-        }
-        Self(total)
+        Self(token_values(&roman.0).sum())
     }
 }
 
