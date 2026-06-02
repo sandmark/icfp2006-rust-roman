@@ -192,10 +192,55 @@ impl TryFrom<&str> for Decimal {
     }
 }
 
+fn tokenize(input: &str) -> Vec<String> {
+    let mut acc = String::new();
+    let mut tokens: Vec<String> = Vec::new();
+
+    for c in input.chars() {
+        match c {
+            ' ' => {
+                tokens.push(acc);
+                acc = String::new();
+            }
+            '(' => {
+                tokens.push(acc);
+                tokens.push("(".to_string());
+                acc = String::new();
+            }
+            ')' => {
+                tokens.push(acc);
+                tokens.push(")".to_string());
+                acc = String::new();
+            }
+            c => {
+                acc.push(c);
+            }
+        }
+    }
+
+    tokens.push(acc);
+
+    return tokens.into_iter().filter(|s| !s.is_empty()).collect();
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    mod tokenize {
+        use super::*;
+
+        #[test]
+        fn splits_by_whitespace() {
+            assert_eq!(tokenize("V REM"), vec!["V", "REM"]);
+            assert_eq!(tokenize(" V REM "), vec!["V", "REM"]);
+        }
+
+        #[test]
+        fn splits_by_parenthesis() {
+            assert_eq!(tokenize("words(IV)"), vec!["words", "(", "IV", ")"]);
+        }
+    }
     mod try_from_roman {
         use super::*;
 
