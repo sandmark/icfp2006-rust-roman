@@ -207,6 +207,14 @@ fn tokenize(input: &str) -> Vec<String> {
                     acc = String::new();
                 }
             }
+            '\t' => {
+                if inside_quote {
+                    acc.push(c);
+                } else {
+                    tokens.push(acc);
+                    acc = String::new();
+                }
+            }
             '(' => {
                 if inside_quote {
                     acc.push(c);
@@ -328,8 +336,7 @@ mod tests {
             assert_eq!(tokenize("VII.0"), vec!["VII.0"]);
         }
 
-        // FIXME(RED): タブはスペースと同じ区切り文字として扱うべきだが未実装。
-        //             実装が `\t` を空白扱いにすれば GREEN になる。
+        // 正常系: タブはスペースと同じ区切り文字として扱う。
         #[test]
         fn splits_on_tab() {
             assert_eq!(tokenize("V\tREM"), vec!["V", "REM"]);
