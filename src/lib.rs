@@ -256,19 +256,37 @@ mod tests {
     mod tokenize {
         use super::*;
 
+        // 正常系: 空白でトークンに分割する。
         #[test]
-        fn splits_by_whitespace() {
+        fn splits_on_whitespace() {
             assert_eq!(tokenize("V REM"), vec!["V", "REM"]);
-            assert_eq!(tokenize(" V REM "), vec!["V", "REM"]);
         }
 
+        // 正常系: 先頭・末尾・連続する空白は除去され、空トークンは残らない。
         #[test]
-        fn splits_by_parenthesis() {
+        fn ignores_surrounding_whitespace() {
+            assert_eq!(tokenize(" V REM "), vec!["V", "REM"]);
+            assert_eq!(tokenize("V    REM"), vec!["V", "REM"]);
+        }
+
+        // 正常系: `(` `)` はそれぞれ独立したトークンになり、隣接する語を区切る。
+        #[test]
+        fn splits_parentheses_into_separate_tokens() {
             assert_eq!(tokenize("words(IV)"), vec!["words", "(", "IV", ")"]);
         }
 
+        // 正常系: ダブルクォートで囲まれた範囲は、内部の空白・括弧を含めて 1 トークンとして保持する。
         #[test]
-        fn escapes_double_quote() {
+        fn keeps_quoted_text_as_single_token() {
+            assert_eq!(
+                tokenize("X \"a b (c)\" Y"),
+                vec!["X", "\"a b (c)\"", "Y"]
+            );
+        }
+
+        // 正常系: hack.bas に現れる実際の行を分割できる（クォート保持・括弧分割・空白除去の複合）。
+        #[test]
+        fn tokenizes_realistic_basic_line() {
             assert_eq!(
                 tokenize("CDXXX    PRINT \"found match!! (for user) \" + username + CHR(X)"),
                 vec![
@@ -284,6 +302,13 @@ mod tests {
                     ")"
                 ]
             );
+        }
+
+        // 異常系: 空文字列・空白のみの入力はトークンを生まない。
+        #[test]
+        fn returns_empty_for_blank_input() {
+            assert!(tokenize("").is_empty());
+            assert!(tokenize("   ").is_empty());
         }
     }
     mod try_from_roman {
