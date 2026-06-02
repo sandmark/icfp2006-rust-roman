@@ -225,6 +225,15 @@ fn tokenize(input: &str) -> Vec<String> {
                     acc = String::new();
                 }
             }
+            ',' => {
+                if inside_quote {
+                    acc.push(c);
+                } else {
+                    tokens.push(acc);
+                    tokens.push(c.to_string());
+                    acc = String::new();
+                }
+            }
             '"' => {
                 if inside_quote {
                     inside_quote = false;
@@ -327,9 +336,7 @@ mod tests {
             assert_eq!(tokenize("\tV\t"), vec!["V"]);
         }
 
-        // FIXME(RED): `,` は単独トークンになるべきだが、現状は前語に連結される。
-        //             例: BASIC の `CHECKPASS(username, words(i))` の引数区切り。
-        //             空白の有無に関わらず `,` が独立することを契約とする。
+        // 正常系: `,` は単独トークンになる。
         #[test]
         fn splits_comma_into_separate_token() {
             assert_eq!(tokenize("a,b"), vec!["a", ",", "b"]);
