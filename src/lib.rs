@@ -220,22 +220,40 @@ mod tests {
         // 異常系: 不正なローマ数字はエラー。
         #[test]
         fn rejects_malformed_input() {
-            assert!(Roman::try_from("IIII").is_err());
-            assert!(Roman::try_from("VIM").is_err());
-            assert!(Roman::try_from("XIVI").is_err());
-            assert!(Roman::try_from("IVIV").is_err());
+            assert!(matches!(
+                Roman::try_from("IIII"),
+                Err(ParseRomanError::Malformed(_))
+            ));
+            assert!(matches!(
+                Roman::try_from("VIM"),
+                Err(ParseRomanError::Malformed(_))
+            ));
+            assert!(matches!(
+                Roman::try_from("XIVI"),
+                Err(ParseRomanError::Malformed(_))
+            ));
+            assert!(matches!(
+                Roman::try_from("IVIV"),
+                Err(ParseRomanError::Malformed(_))
+            ));
         }
 
         // 異常系: 空文字列。
         #[test]
         fn rejects_empty_input() {
-            assert!(Roman::try_from("").is_err());
+            assert!(matches!(
+                Roman::try_from(""),
+                Err(ParseRomanError::Parse(_))
+            ));
         }
 
         // 異常系: ローマ字シンボルではない文字列。
         #[test]
         fn rejects_not_symbols() {
-            assert!(Roman::try_from("1").is_err());
+            assert!(matches!(
+                Roman::try_from("1"),
+                Err(ParseRomanError::Parse(_))
+            ));
         }
     }
     mod try_from_decimal {
