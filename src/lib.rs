@@ -195,22 +195,48 @@ impl TryFrom<&str> for Decimal {
 fn tokenize(input: &str) -> Vec<String> {
     let mut acc = String::new();
     let mut tokens: Vec<String> = Vec::new();
+    let mut inside_quote = false;
 
     for c in input.chars() {
         match c {
             ' ' => {
-                tokens.push(acc);
-                acc = String::new();
+                if inside_quote {
+                    acc.push(c);
+                } else {
+                    tokens.push(acc);
+                    acc = String::new();
+                }
             }
             '(' => {
-                tokens.push(acc);
-                tokens.push("(".to_string());
-                acc = String::new();
+                if inside_quote {
+                    acc.push(c);
+                } else {
+                    tokens.push(acc);
+                    tokens.push(c.to_string());
+                    acc = String::new();
+                }
             }
             ')' => {
-                tokens.push(acc);
-                tokens.push(")".to_string());
-                acc = String::new();
+                if inside_quote {
+                    acc.push(c);
+                } else {
+                    tokens.push(acc);
+                    tokens.push(c.to_string());
+                    acc = String::new();
+                }
+            }
+            '"' => {
+                if inside_quote {
+                    inside_quote = false;
+                    acc.push(c);
+                    tokens.push(acc);
+                    acc = String::new();
+                } else {
+                    inside_quote = true;
+                    tokens.push(acc);
+                    acc = String::new();
+                    acc.push(c);
+                }
             }
             c => {
                 acc.push(c);
@@ -239,6 +265,25 @@ mod tests {
         #[test]
         fn splits_by_parenthesis() {
             assert_eq!(tokenize("words(IV)"), vec!["words", "(", "IV", ")"]);
+        }
+
+        #[test]
+        fn escapes_double_quote() {
+            assert_eq!(
+                tokenize("CDXXX    PRINT \"found match!! (for user) \" + username + CHR(X)"),
+                vec![
+                    "CDXXX",
+                    "PRINT",
+                    "\"found match!! (for user) \"",
+                    "+",
+                    "username",
+                    "+",
+                    "CHR",
+                    "(",
+                    "X",
+                    ")"
+                ]
+            );
         }
     }
     mod try_from_roman {
