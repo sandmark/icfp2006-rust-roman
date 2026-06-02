@@ -101,20 +101,6 @@ impl From<Decimal> for Roman<'_> {
     }
 }
 
-/// ローマ数字を構成する記号 `c` を受け取り、
-/// [SYMBOLS] から一致するタプルを返す。
-/// NOTE: 減算則には対応していない。
-///
-/// [SYMBOLS] に `c` が存在しない場合は論理的バグであるため
-/// 明示的に panic するものとする。
-fn value_of(c: char) -> u16 {
-    SYMBOLS
-        .iter()
-        .filter(|(_, sym)| sym.len() == 1) // FIXME: 本来不要。 [SYMBOLS] の見直しをすること。
-        .find_map(|(value, sym)| sym.starts_with(c).then_some(*value))
-        .expect("char must be Roman Symbol")
-}
-
 /// ローマ数字文字列を先頭から走査し、各トークンに該当する [SYMBOLS] を順に返すイテレータ。
 /// 先頭に一致する記号がなくなった時点で停止する。
 fn tokens(roman: &str) -> impl Iterator<Item = (u16, &str)> + '_ {
