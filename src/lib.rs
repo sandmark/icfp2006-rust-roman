@@ -256,6 +256,8 @@ mod tests {
     mod tokenize {
         use super::*;
 
+        // TODO: test tokenize("\"abc") => どうするべきか
+
         // 正常系: 空白でトークンに分割する。
         #[test]
         fn splits_on_whitespace() {
@@ -278,10 +280,7 @@ mod tests {
         // 正常系: ダブルクォートで囲まれた範囲は、内部の空白・括弧を含めて 1 トークンとして保持する。
         #[test]
         fn keeps_quoted_text_as_single_token() {
-            assert_eq!(
-                tokenize("X \"a b (c)\" Y"),
-                vec!["X", "\"a b (c)\"", "Y"]
-            );
+            assert_eq!(tokenize("X \"a b (c)\" Y"), vec!["X", "\"a b (c)\"", "Y"]);
         }
 
         // 正常系: hack.bas に現れる実際の行を分割できる（クォート保持・括弧分割・空白除去の複合）。
@@ -309,6 +308,47 @@ mod tests {
         fn returns_empty_for_blank_input() {
             assert!(tokenize("").is_empty());
             assert!(tokenize("   ").is_empty());
+        }
+
+        // 正常系: `.` は区切り文字ではない。REM コメント中にしか現れないため
+        //        トークナイズ対象外とし、連結したまま 1 トークンとする
+        //        （例: "VII.0"）。NOTE: lib.rs 冒頭 docstring の区切り規則に
+        //        挙がっている `.` は誤記で、後日修正予定。
+        #[test]
+        fn keeps_period_glued() {
+            assert_eq!(tokenize("VII.0"), vec!["VII.0"]);
+        }
+
+        // FIXME(RED): タブはスペースと同じ区切り文字として扱うべきだが未実装。
+        //             実装が `\t` を空白扱いにすれば GREEN になる。
+        #[test]
+        fn splits_on_tab() {
+            assert_eq!(tokenize("V\tREM"), vec!["V", "REM"]);
+            assert_eq!(tokenize("\tV\t"), vec!["V"]);
+        }
+
+        // FIXME(RED): `,` は単独トークンになるべきだが、現状は前語に連結される。
+        //             例: BASIC の `CHECKPASS(username, words(i))` の引数区切り。
+        //             空白の有無に関わらず `,` が独立することを契約とする。
+        #[test]
+        fn splits_comma_into_separate_token() {
+            assert_eq!(tokenize("a,b"), vec!["a", ",", "b"]);
+            assert_eq!(tokenize("username, words"), vec!["username", ",", "words"]);
+        }
+
+        // 正常系(回帰): 空引数呼び出しは括弧だけが残る（空 acc は除去される）。
+        #[test]
+        fn keeps_parentheses_of_empty_call() {
+            assert_eq!(tokenize("ARGS()"), vec!["ARGS", "(", ")"]);
+        }
+
+        // 正常系(回帰): ネストした呼び出しの連続する閉じ括弧は個別トークンに割れる。
+        #[test]
+        fn splits_consecutive_close_parentheses() {
+            assert_eq!(
+                tokenize("OUTER(INNER(i))"),
+                vec!["OUTER", "(", "INNER", "(", "i", ")", ")"]
+            );
         }
     }
     mod try_from_roman {
