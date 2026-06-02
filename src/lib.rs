@@ -115,30 +115,53 @@ fn value_of(c: char) -> u16 {
         .expect("char must be Roman Symbol")
 }
 
-/// ローマ数字文字列を先頭から走査し、各トークンの値だけを順に返すイテレータ。
+/// ローマ数字文字列を先頭から走査し、各トークンに該当する [SYMBOLS] を順に返すイテレータ。
 /// 先頭に一致する記号がなくなった時点で停止する。
-fn token_values(roman: &str) -> impl Iterator<Item = u16> + '_ {
+fn tokens(roman: &str) -> impl Iterator<Item = (u16, &str)> + '_ {
     let mut rest = roman;
     std::iter::from_fn(move || {
-        let (value, next) = SYMBOLS
+        let (value, symbol, next) = SYMBOLS
             .iter()
-            .find_map(|(value, sym)| rest.strip_prefix(sym).map(|tail| (*value, tail)))?;
+            .find_map(|(value, sym)| rest.strip_prefix(sym).map(|tail| (*value, *sym, tail)))?;
         rest = next;
-        Some(value)
+        Some((value, symbol))
     })
 }
 
 /// ローマ数字文字列 [Roman] を10進数 [Decimal] に変換する [From] トレイト実装。
 impl From<Roman<'_>> for Decimal {
     fn from(roman: Roman) -> Self {
-        Self(token_values(&roman.0).sum())
+        Self(tokens(&roman.0).map(|(value, _)| value).sum())
     }
 }
 
-impl TryFrom<&str> for Roman<'_> {
+/// 文字列からローマ数字型 [Roman] に変換するトレイト実装。
+impl<'a> TryFrom<&'a str> for Roman<'a> {
     type Error = String;
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
-        todo!()
+    fn try_from(value: &'a str) -> Result<Self, Self::Error> {
+        // Check: empty?
+        if value.is_empty() {
+            return Err("empty".to_string());
+        }
+
+        // Check: every symbol?
+        if !value.chars().all(|c| "IVXLCDM".contains(c)) {
+            return Err("not symbols".to_string());
+        }
+
+        // Check: malformed input
+        // NOTE: 入力を Decimal に変換し、さらに Roman にした上で diff を取る。
+        // - "IIII" → 4 → Roman::from(4) == "IV" → "IV" != "IIII" → Err
+        // - "III" → 3 → "III" → Ok
+        // - "VIM" → 1006 → "MVI" → Err
+        // - "IVIV" → 8 → "VIII" → Err
+        let decimal = Decimal::from(Roman(Cow::from(value)));
+        let roman = Roman::from(decimal);
+        if roman.0 != value {
+            return Err("malformed".to_string());
+        }
+
+        Ok(roman)
     }
 }
 
@@ -200,6 +223,7 @@ mod tests {
             assert!(Roman::try_from("IIII").is_err());
             assert!(Roman::try_from("VIM").is_err());
             assert!(Roman::try_from("XIVI").is_err());
+            assert!(Roman::try_from("IVIV").is_err());
         }
 
         // 異常系: 空文字列。
