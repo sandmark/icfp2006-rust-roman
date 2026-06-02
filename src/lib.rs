@@ -43,8 +43,6 @@
 //! ```
 
 // TODO: Scan(字句解析/str) -> Parse(ドメイン/境界/型) -> Logic(変換)
-// TODO: enum RomanError (impl Display, Error)
-// TODO: Roman newtype + TryFrom<&str>
 
 use std::{borrow::Cow, num::ParseIntError};
 
