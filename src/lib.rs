@@ -135,18 +135,25 @@ impl From<Roman<'_>> for Decimal {
     }
 }
 
+#[derive(Debug, PartialEq)]
+/// [Roman] の [TryFrom] (&str) で使用されるエラーバリアント。
+enum ParseRomanError {
+    Malformed(String),
+    Parse(String),
+}
+
 /// 文字列からローマ数字型 [Roman] に変換するトレイト実装。
 impl<'a> TryFrom<&'a str> for Roman<'a> {
-    type Error = String;
+    type Error = ParseRomanError;
     fn try_from(value: &'a str) -> Result<Self, Self::Error> {
         // Check: empty?
         if value.is_empty() {
-            return Err("empty".to_string());
+            return Err(ParseRomanError::Parse(value.to_string()));
         }
 
         // Check: every symbol?
         if !value.chars().all(|c| "IVXLCDM".contains(c)) {
-            return Err("not symbols".to_string());
+            return Err(ParseRomanError::Parse(value.to_string()));
         }
 
         // Check: malformed input
@@ -158,7 +165,7 @@ impl<'a> TryFrom<&'a str> for Roman<'a> {
         let decimal = Decimal::from(Roman(Cow::from(value)));
         let roman = Roman::from(decimal);
         if roman.0 != value {
-            return Err("malformed".to_string());
+            return Err(ParseRomanError::Malformed(value.to_string()));
         }
 
         Ok(roman)
