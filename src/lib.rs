@@ -192,6 +192,7 @@ impl TryFrom<&str> for Decimal {
     }
 }
 
+/// QvickBasic の一行 `input` を読み込み、字句で分解した [Vec] を返す。
 fn tokenize(input: &str) -> Vec<String> {
     let mut acc = String::new();
     let mut tokens: Vec<String> = Vec::new();
@@ -199,7 +200,7 @@ fn tokenize(input: &str) -> Vec<String> {
 
     for c in input.chars() {
         match c {
-            ' ' => {
+            ' ' | '\t' => {
                 if inside_quote {
                     acc.push(c);
                 } else {
@@ -207,33 +208,7 @@ fn tokenize(input: &str) -> Vec<String> {
                     acc = String::new();
                 }
             }
-            '\t' => {
-                if inside_quote {
-                    acc.push(c);
-                } else {
-                    tokens.push(acc);
-                    acc = String::new();
-                }
-            }
-            '(' => {
-                if inside_quote {
-                    acc.push(c);
-                } else {
-                    tokens.push(acc);
-                    tokens.push(c.to_string());
-                    acc = String::new();
-                }
-            }
-            ')' => {
-                if inside_quote {
-                    acc.push(c);
-                } else {
-                    tokens.push(acc);
-                    tokens.push(c.to_string());
-                    acc = String::new();
-                }
-            }
-            ',' => {
+            '(' | ')' | ',' => {
                 if inside_quote {
                     acc.push(c);
                 } else {
@@ -255,7 +230,7 @@ fn tokenize(input: &str) -> Vec<String> {
                     acc.push(c);
                 }
             }
-            c => {
+            _ => {
                 acc.push(c);
             }
         }
