@@ -273,7 +273,11 @@ mod tests {
     mod tokenize {
         use super::*;
 
-        // TODO: test tokenize("\"abc") => どうするべきか
+        // 正常系(回帰): 終端のないダブルクォートはトークンを分割するだけ。
+        #[test]
+        fn splits_quote_as_token_midword() {
+            assert_eq!(tokenize("ab\"cdef"), vec!["ab", "\"cdef"]);
+        }
 
         // 正常系: 空白でトークンに分割する。
         #[test]
