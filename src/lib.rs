@@ -44,7 +44,7 @@
 
 // TODO: Scan(字句解析/str) -> Parse(ドメイン/境界/型) -> Logic(変換)
 
-use std::{borrow::Cow, num::ParseIntError};
+use std::{borrow::Cow, fmt::Display, num::ParseIntError};
 
 /// ローマ数字 <-> 10進数相互変換テーブル
 const SYMBOLS: [(u16, &str); 13] = [
@@ -64,6 +64,7 @@ const SYMBOLS: [(u16, &str); 13] = [
 ];
 
 /// ローマ数字型。
+#[derive(Debug, PartialEq)]
 struct Roman<'a>(Cow<'a, str>);
 
 /// 1..=3999 の10進数型。
@@ -76,6 +77,16 @@ enum Token<'a> {
     Roman(Roman<'a>),
     Decimal(Decimal),
     Other(&'a str),
+}
+
+impl Display for Token<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Token::Roman(r) => write!(f, "{}", r.0),
+            Token::Decimal(d) => write!(f, "{}", d.0),
+            Token::Other(s) => write!(f, "{}", s),
+        }
+    }
 }
 
 /// ローマ数字に変換可能 (1..=3999) な `n` を受け取り、
@@ -273,10 +284,39 @@ fn tokenize<'a>(segments: &'a [String]) -> Vec<Token<'a>> {
         .collect()
 }
 
+/// 一行分の [Token] の [Vec] を [String] にして返す。
+fn render(tokens: Vec<Token>) -> String {
+    tokens
+        .into_iter()
+        .map(|token| token.to_string())
+        .collect::<Vec<String>>()
+        .join(" ")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    mod render {
+        use super::*;
+
+        #[test]
+        fn displays_tokens_as_string() {
+            assert_eq!(
+                render(vec![
+                    Token::Roman(Roman(Cow::from("IV"))),
+                    Token::Other("REM"),
+                    Token::Other("words"),
+                    Token::Other("("),
+                    Token::Roman(Roman(Cow::from("II"))),
+                    Token::Other(")"),
+                    Token::Other("="),
+                    Token::Other("\"plane\"")
+                ]),
+                "IV REM words ( II ) = \"plane\""
+            );
+        }
+    }
     mod convert {
         use super::*;
 
