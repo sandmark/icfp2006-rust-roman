@@ -193,9 +193,9 @@ impl TryFrom<&str> for Decimal {
 }
 
 /// QvickBasic の一行 `input` を読み込み、字句で分解した [Vec] を返す。
-fn tokenize(input: &str) -> Vec<String> {
+fn scan(input: &str) -> Vec<String> {
     let mut acc = String::new();
-    let mut tokens: Vec<String> = Vec::new();
+    let mut segments: Vec<String> = Vec::new();
     let mut inside_quote = false;
 
     for c in input.chars() {
@@ -204,7 +204,7 @@ fn tokenize(input: &str) -> Vec<String> {
                 if inside_quote {
                     acc.push(c);
                 } else {
-                    tokens.push(acc);
+                    segments.push(acc);
                     acc = String::new();
                 }
             }
@@ -212,8 +212,8 @@ fn tokenize(input: &str) -> Vec<String> {
                 if inside_quote {
                     acc.push(c);
                 } else {
-                    tokens.push(acc);
-                    tokens.push(c.to_string());
+                    segments.push(acc);
+                    segments.push(c.to_string());
                     acc = String::new();
                 }
             }
@@ -221,11 +221,11 @@ fn tokenize(input: &str) -> Vec<String> {
                 if inside_quote {
                     inside_quote = false;
                     acc.push(c);
-                    tokens.push(acc);
+                    segments.push(acc);
                     acc = String::new();
                 } else {
                     inside_quote = true;
-                    tokens.push(acc);
+                    segments.push(acc);
                     acc = String::new();
                     acc.push(c);
                 }
@@ -236,54 +236,54 @@ fn tokenize(input: &str) -> Vec<String> {
         }
     }
 
-    tokens.push(acc);
+    segments.push(acc);
 
-    return tokens.into_iter().filter(|s| !s.is_empty()).collect();
+    return segments.into_iter().filter(|s| !s.is_empty()).collect();
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    mod tokenize {
+    mod scan {
         use super::*;
 
         // 正常系(回帰): 終端のないダブルクォートはトークンを分割するだけ。
         #[test]
-        fn splits_quote_as_token_midword() {
-            assert_eq!(tokenize("ab\"cdef"), vec!["ab", "\"cdef"]);
+        fn splits_quote_as_segment_midword() {
+            assert_eq!(scan("ab\"cdef"), vec!["ab", "\"cdef"]);
         }
 
         // 正常系: 空白でトークンに分割する。
         #[test]
         fn splits_on_whitespace() {
-            assert_eq!(tokenize("V REM"), vec!["V", "REM"]);
+            assert_eq!(scan("V REM"), vec!["V", "REM"]);
         }
 
         // 正常系: 先頭・末尾・連続する空白は除去され、空トークンは残らない。
         #[test]
         fn ignores_surrounding_whitespace() {
-            assert_eq!(tokenize(" V REM "), vec!["V", "REM"]);
-            assert_eq!(tokenize("V    REM"), vec!["V", "REM"]);
+            assert_eq!(scan(" V REM "), vec!["V", "REM"]);
+            assert_eq!(scan("V    REM"), vec!["V", "REM"]);
         }
 
         // 正常系: `(` `)` はそれぞれ独立したトークンになり、隣接する語を区切る。
         #[test]
         fn splits_parentheses_into_separate_tokens() {
-            assert_eq!(tokenize("words(IV)"), vec!["words", "(", "IV", ")"]);
+            assert_eq!(scan("words(IV)"), vec!["words", "(", "IV", ")"]);
         }
 
         // 正常系: ダブルクォートで囲まれた範囲は、内部の空白・括弧を含めて 1 トークンとして保持する。
         #[test]
         fn keeps_quoted_text_as_single_token() {
-            assert_eq!(tokenize("X \"a b (c)\" Y"), vec!["X", "\"a b (c)\"", "Y"]);
+            assert_eq!(scan("X \"a b (c)\" Y"), vec!["X", "\"a b (c)\"", "Y"]);
         }
 
         // 正常系: hack.bas に現れる実際の行を分割できる（クォート保持・括弧分割・空白除去の複合）。
         #[test]
         fn tokenizes_realistic_basic_line() {
             assert_eq!(
-                tokenize("CDXXX    PRINT \"found match!! (for user) \" + username + CHR(X)"),
+                scan("CDXXX    PRINT \"found match!! (for user) \" + username + CHR(X)"),
                 vec![
                     "CDXXX",
                     "PRINT",
@@ -302,8 +302,8 @@ mod tests {
         // 異常系: 空文字列・空白のみの入力はトークンを生まない。
         #[test]
         fn returns_empty_for_blank_input() {
-            assert!(tokenize("").is_empty());
-            assert!(tokenize("   ").is_empty());
+            assert!(scan("").is_empty());
+            assert!(scan("   ").is_empty());
         }
 
         // 正常系: `.` は区切り文字ではない。REM コメント中にしか現れないため
@@ -312,34 +312,34 @@ mod tests {
         //        挙がっている `.` は誤記で、後日修正予定。
         #[test]
         fn keeps_period_glued() {
-            assert_eq!(tokenize("VII.0"), vec!["VII.0"]);
+            assert_eq!(scan("VII.0"), vec!["VII.0"]);
         }
 
         // 正常系: タブはスペースと同じ区切り文字として扱う。
         #[test]
         fn splits_on_tab() {
-            assert_eq!(tokenize("V\tREM"), vec!["V", "REM"]);
-            assert_eq!(tokenize("\tV\t"), vec!["V"]);
+            assert_eq!(scan("V\tREM"), vec!["V", "REM"]);
+            assert_eq!(scan("\tV\t"), vec!["V"]);
         }
 
         // 正常系: `,` は単独トークンになる。
         #[test]
         fn splits_comma_into_separate_token() {
-            assert_eq!(tokenize("a,b"), vec!["a", ",", "b"]);
-            assert_eq!(tokenize("username, words"), vec!["username", ",", "words"]);
+            assert_eq!(scan("a,b"), vec!["a", ",", "b"]);
+            assert_eq!(scan("username, words"), vec!["username", ",", "words"]);
         }
 
         // 正常系(回帰): 空引数呼び出しは括弧だけが残る（空 acc は除去される）。
         #[test]
         fn keeps_parentheses_of_empty_call() {
-            assert_eq!(tokenize("ARGS()"), vec!["ARGS", "(", ")"]);
+            assert_eq!(scan("ARGS()"), vec!["ARGS", "(", ")"]);
         }
 
         // 正常系(回帰): ネストした呼び出しの連続する閉じ括弧は個別トークンに割れる。
         #[test]
         fn splits_consecutive_close_parentheses() {
             assert_eq!(
-                tokenize("OUTER(INNER(i))"),
+                scan("OUTER(INNER(i))"),
                 vec!["OUTER", "(", "INNER", "(", "i", ")", ")"]
             );
         }
