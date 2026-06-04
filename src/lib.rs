@@ -70,6 +70,14 @@ struct Roman<'a>(Cow<'a, str>);
 #[derive(Debug, PartialEq)]
 struct Decimal(u16);
 
+/// [tokenize] 結果。
+#[derive(Debug, PartialEq)]
+enum Token<'a> {
+    Roman(Roman<'a>),
+    Decimal(Decimal),
+    Other(&'a str),
+}
+
 /// ローマ数字に変換可能 (1..=3999) な `n` を受け取り、
 /// [SYMBOLS] からもっとも大きな数と結び付いたタプルを返す。
 ///
@@ -241,10 +249,74 @@ fn scan(input: &str) -> Vec<String> {
     return segments.into_iter().filter(|s| !s.is_empty()).collect();
 }
 
+/// [Roman] `roman` を [Decimal] へ変換して返す。
+fn decimalize(roman: Roman) -> Decimal {
+    Decimal::from(roman)
+}
+
+/// [Decimal] `decimal` を [Roman] へ変換して返す。
+fn romanize<'a>(decimal: Decimal) -> Roman<'a> {
+    Roman::from(decimal)
+}
+
+/// [scan] 結果を受け取り、 [Token] に変換した [Vec] を返す。
+fn tokenize<'a>(segments: &'a [String]) -> Vec<Token<'a>> {
+    segments
+        .iter()
+        .map(
+            |s| match (Roman::try_from(s.as_str()), Decimal::try_from(s.as_str())) {
+                (Ok(r), _) => Token::Roman(r),
+                (_, Ok(d)) => Token::Decimal(d),
+                (Err(_), Err(_)) => Token::Other(s.as_str()),
+            },
+        )
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    mod convert {
+        use super::*;
+
+        #[test]
+        fn decimalize_roman() {
+            assert_eq!(decimalize(Roman(Cow::from("IV"))), Decimal(4));
+        }
+
+        #[test]
+        fn romanize_decimal() {
+            assert_eq!(romanize(Decimal(4)), Roman(Cow::from("IV")));
+        }
+    }
+    mod tokenize {
+        use super::*;
+
+        #[test]
+        fn converts_string_into_roman() {
+            assert_eq!(
+                tokenize(&["IV".to_string()]),
+                vec![Token::Roman(Roman(Cow::from("IV")))]
+            );
+        }
+
+        #[test]
+        fn converts_string_into_decimal() {
+            assert_eq!(
+                tokenize(&["4".to_string()]),
+                vec![Token::Decimal(Decimal(4))]
+            );
+        }
+
+        #[test]
+        fn converts_string_into_other() {
+            assert_eq!(
+                tokenize(&["0.VII".to_string()]),
+                vec![Token::Other("0.VII")]
+            );
+        }
+    }
     mod scan {
         use super::*;
 
