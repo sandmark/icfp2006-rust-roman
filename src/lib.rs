@@ -307,10 +307,10 @@ fn render(tokens: Vec<Token>) -> String {
 
 /// 一行の QvickBasic を変換した [String] を返す。
 /// `f` は [romanize], [decimalize] のいずれかである。
-fn convert_line(s: &str, f: impl Fn(Token) -> Token) -> String {
-    let segments = scan(s);
+fn convert_line(line: &str, converter: impl Fn(Token) -> Token) -> String {
+    let segments = scan(line);
     let tokens = tokenize(&segments);
-    let converted = tokens.into_iter().map(f).collect();
+    let converted = tokens.into_iter().map(converter).collect();
     render(converted)
 }
 
