@@ -334,6 +334,7 @@ mod tests {
     mod render {
         use super::*;
 
+        // 正常系: 各 Token を Display 表現にし、スペースで連結する。
         #[test]
         fn displays_tokens_as_string() {
             assert_eq!(
@@ -350,24 +351,61 @@ mod tests {
                 "IV REM words ( II ) = \"plane\""
             );
         }
+
+        // 正常系(境界/型網羅): 単一トークン (Decimal) は区切り文字なしで Display される。
+        #[test]
+        fn keeps_single_decimal_without_separator() {
+            assert_eq!(render(vec![Token::Decimal(Decimal(42))]), "42");
+        }
+
+        // 正常系(境界): 空の Vec は空文字列になる。
+        #[test]
+        fn returns_empty_for_no_tokens() {
+            assert_eq!(render(vec![]), "");
+        }
     }
     mod convert {
         use super::*;
 
+        // 正常系: Token::Roman を Decimal トークンへ変換する。
         #[test]
-        fn converts_multiple_lines_to_roman() {
-            let lines = "20       REM  | Brute-forces passwords on UM vIX.0 systems.    |\n25      REM  | Compile with Qvickbasic VII.0 or later:        |".to_string();
-            let result = "XX REM | Brute-forces passwords on UM vIX.0 systems. |\nXXV REM | Compile with Qvickbasic VII.0 or later: |".to_string();
-            assert_eq!(convert(lines, ConvertMode::Roman), result);
+        fn decimalize_roman() {
+            assert_eq!(
+                decimalize(Token::Roman(Roman(Cow::from("IV")))),
+                Token::Decimal(Decimal(4))
+            );
         }
 
+        // 正常系: 対象外 (Decimal / Other) のトークンはそのまま返す。
         #[test]
-        fn converts_multiple_lines_to_decimal() {
-            let lines = "XX       REM  | Brute-forces passwords on UM vIX.0 systems.    |\nXXV      REM  | Compile with Qvickbasic VII.0 or later:        |".to_string();
-            let result = "20 REM | Brute-forces passwords on UM vIX.0 systems. |\n25 REM | Compile with Qvickbasic VII.0 or later: |".to_string();
-            assert_eq!(convert(lines, ConvertMode::Decimal), result);
+        fn decimalize_keeps_non_roman() {
+            assert_eq!(
+                decimalize(Token::Decimal(Decimal(4))),
+                Token::Decimal(Decimal(4))
+            );
+            assert_eq!(decimalize(Token::Other("REM")), Token::Other("REM"));
         }
 
+        // 正常系: Token::Decimal を Roman トークンへ変換する。
+        #[test]
+        fn romanize_decimal() {
+            assert_eq!(
+                romanize(Token::Decimal(Decimal(4))),
+                Token::Roman(Roman(Cow::from("IV")))
+            );
+        }
+
+        // 正常系: 対象外 (Roman / Other) のトークンはそのまま返す。
+        #[test]
+        fn romanize_keeps_non_decimal() {
+            assert_eq!(
+                romanize(Token::Roman(Roman(Cow::from("IV")))),
+                Token::Roman(Roman(Cow::from("IV")))
+            );
+            assert_eq!(romanize(Token::Other("REM")), Token::Other("REM"));
+        }
+
+        // 正常系: 1行を romanize で変換する (10進数→ローマ数字、余白は正規化)。
         #[test]
         fn line_from_decimal_to_roman() {
             assert_eq!(
@@ -379,6 +417,7 @@ mod tests {
             );
         }
 
+        // 正常系: 1行を decimalize で変換する (ローマ数字→10進数)。
         #[test]
         fn line_from_roman_to_decimal() {
             assert_eq!(
@@ -390,25 +429,26 @@ mod tests {
             );
         }
 
+        // 正常系: 複数行をまとめてローマ数字へ変換する (改行は保持)。
         #[test]
-        fn decimalize_roman() {
-            assert_eq!(
-                decimalize(Token::Roman(Roman(Cow::from("IV")))),
-                Token::Decimal(Decimal(4))
-            );
+        fn converts_multiple_lines_to_roman() {
+            let lines = "20       REM  | Brute-forces passwords on UM vIX.0 systems.    |\n25      REM  | Compile with Qvickbasic VII.0 or later:        |".to_string();
+            let result = "XX REM | Brute-forces passwords on UM vIX.0 systems. |\nXXV REM | Compile with Qvickbasic VII.0 or later: |".to_string();
+            assert_eq!(convert(lines, ConvertMode::Roman), result);
         }
 
+        // 正常系: 複数行をまとめて10進数へ変換する。
         #[test]
-        fn romanize_decimal() {
-            assert_eq!(
-                romanize(Token::Decimal(Decimal(4))),
-                Token::Roman(Roman(Cow::from("IV")))
-            );
+        fn converts_multiple_lines_to_decimal() {
+            let lines = "XX       REM  | Brute-forces passwords on UM vIX.0 systems.    |\nXXV      REM  | Compile with Qvickbasic VII.0 or later:        |".to_string();
+            let result = "20 REM | Brute-forces passwords on UM vIX.0 systems. |\n25 REM | Compile with Qvickbasic VII.0 or later: |".to_string();
+            assert_eq!(convert(lines, ConvertMode::Decimal), result);
         }
     }
     mod tokenize {
         use super::*;
 
+        // 正常系: 妥当なローマ数字は Token::Roman になる。
         #[test]
         fn converts_string_into_roman() {
             assert_eq!(
@@ -417,6 +457,7 @@ mod tests {
             );
         }
 
+        // 正常系: 10進数文字列は Token::Decimal になる。
         #[test]
         fn converts_string_into_decimal() {
             assert_eq!(
@@ -425,12 +466,32 @@ mod tests {
             );
         }
 
+        // 正常系: いずれにも該当しない文字列は Token::Other になる。
         #[test]
         fn converts_string_into_other() {
             assert_eq!(
                 tokenize(&["0.VII".to_string()]),
                 vec![Token::Other("0.VII")]
             );
+        }
+
+        // 正常系: 複数セグメントを順序を保って分類し、Vec で返す。
+        #[test]
+        fn classifies_each_segment_in_order() {
+            assert_eq!(
+                tokenize(&["X".to_string(), "REM".to_string(), "4".to_string()]),
+                vec![
+                    Token::Roman(Roman(Cow::from("X"))),
+                    Token::Other("REM"),
+                    Token::Decimal(Decimal(4)),
+                ]
+            );
+        }
+
+        // 正常系(境界): 空スライスは空の Vec を返す。
+        #[test]
+        fn returns_empty_for_no_segments() {
+            assert!(tokenize(&[]).is_empty());
         }
     }
     mod scan {
