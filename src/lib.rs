@@ -260,16 +260,6 @@ fn scan(input: &str) -> Vec<String> {
     return segments.into_iter().filter(|s| !s.is_empty()).collect();
 }
 
-/// [Roman] `roman` を [Decimal] へ変換して返す。
-fn decimalize(roman: Roman) -> Decimal {
-    Decimal::from(roman)
-}
-
-/// [Decimal] `decimal` を [Roman] へ変換して返す。
-fn romanize<'a>(decimal: Decimal) -> Roman<'a> {
-    Roman::from(decimal)
-}
-
 /// [scan] 結果を受け取り、 [Token] に変換した [Vec] を返す。
 fn tokenize<'a>(segments: &'a [String]) -> Vec<Token<'a>> {
     segments
@@ -282,6 +272,24 @@ fn tokenize<'a>(segments: &'a [String]) -> Vec<Token<'a>> {
             },
         )
         .collect()
+}
+
+/// [Token::Roman] を [Token::Decimal] へ変換して返す。
+fn decimalize(token: Token) -> Token {
+    if let Token::Roman(r) = token {
+        Token::Decimal(Decimal::from(r))
+    } else {
+        token
+    }
+}
+
+/// [Token::Decimal] を [Token::Roman] へ変換して返す。
+fn romanize<'a>(token: Token) -> Token {
+    if let Token::Decimal(d) = token {
+        Token::Roman(Roman::from(d))
+    } else {
+        token
+    }
 }
 
 /// 一行分の [Token] の [Vec] を [String] にして返す。
@@ -322,12 +330,18 @@ mod tests {
 
         #[test]
         fn decimalize_roman() {
-            assert_eq!(decimalize(Roman(Cow::from("IV"))), Decimal(4));
+            assert_eq!(
+                decimalize(Token::Roman(Roman(Cow::from("IV")))),
+                Token::Decimal(Decimal(4))
+            );
         }
 
         #[test]
         fn romanize_decimal() {
-            assert_eq!(romanize(Decimal(4)), Roman(Cow::from("IV")));
+            assert_eq!(
+                romanize(Token::Decimal(Decimal(4))),
+                Token::Roman(Roman(Cow::from("IV")))
+            );
         }
     }
     mod tokenize {
