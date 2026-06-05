@@ -45,7 +45,7 @@
 use std::{borrow::Cow, fmt::Display, num::ParseIntError};
 
 /// [convert] に渡される変換モード。
-enum ConvertMode {
+pub enum ConvertMode {
     Decimal,
     Roman,
 }
@@ -315,7 +315,7 @@ fn convert_line(line: &str, converter: impl Fn(Token) -> Token) -> String {
 }
 
 /// QvickBasic コード `s` を [ConvertMode] に従って数字表記を変換した [String] を返す。
-fn convert(code: String, mode: ConvertMode) -> String {
+pub fn convert(code: String, mode: ConvertMode) -> String {
     let converter = match mode {
         ConvertMode::Decimal => decimalize,
         ConvertMode::Roman => romanize,
