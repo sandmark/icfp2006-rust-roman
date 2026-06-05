@@ -301,6 +301,15 @@ fn render(tokens: Vec<Token>) -> String {
         .join(" ")
 }
 
+/// 一行の QvickBasic を変換した [String] を返す。
+/// `f` は [romanize], [decimalize] のいずれかである。
+fn convert_line(s: String, f: impl Fn(Token) -> Token) -> String {
+    let segments = scan(s.as_str());
+    let tokens = tokenize(&segments);
+    let converted = tokens.into_iter().map(f).collect();
+    render(converted)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -327,6 +336,28 @@ mod tests {
     }
     mod convert {
         use super::*;
+
+        #[test]
+        fn line_from_decimal_to_roman() {
+            assert_eq!(
+                convert_line(
+                    "10        REM  | HACK.BAS      (c) 19100   fr33 v4r14bl3z       |".to_string(),
+                    romanize
+                ),
+                "X REM | HACK.BAS ( c ) 19100 fr33 v4r14bl3z |"
+            );
+        }
+
+        #[test]
+        fn line_from_roman_to_decimal() {
+            assert_eq!(
+                convert_line(
+                    "X        REM  | HACK.BAS      (c) 19100   fr33 v4r14bl3z       |".to_string(),
+                    decimalize
+                ),
+                "10 REM | HACK.BAS ( c ) 19100 fr33 v4r14bl3z |"
+            );
+        }
 
         #[test]
         fn decimalize_roman() {
