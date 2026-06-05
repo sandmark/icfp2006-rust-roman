@@ -42,9 +42,13 @@
 //! 55       REM  +------------------------------------------------+
 //! ```
 
-// TODO: Scan(字句解析/str) -> Parse(ドメイン/境界/型) -> Logic(変換)
-
 use std::{borrow::Cow, fmt::Display, num::ParseIntError};
+
+/// [convert] に渡される変換モード。
+enum ConvertMode {
+    Decimal,
+    Roman,
+}
 
 /// ローマ数字 <-> 10進数相互変換テーブル
 const SYMBOLS: [(u16, &str); 13] = [
@@ -310,6 +314,19 @@ fn convert_line(s: String, f: impl Fn(Token) -> Token) -> String {
     render(converted)
 }
 
+/// QvickBasic コード `s` を [ConvertMode] に従って数字表記を変換した [String] を返す。
+fn convert(s: String, mode: ConvertMode) -> String {
+    let converter = match mode {
+        ConvertMode::Decimal => decimalize,
+        ConvertMode::Roman => romanize,
+    };
+
+    s.lines()
+        .map(|l| convert_line(l.to_string(), converter))
+        .collect::<Vec<String>>()
+        .join("\n")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -336,6 +353,20 @@ mod tests {
     }
     mod convert {
         use super::*;
+
+        #[test]
+        fn converts_multiple_lines_to_roman() {
+            let lines = "20       REM  | Brute-forces passwords on UM vIX.0 systems.    |\n25      REM  | Compile with Qvickbasic VII.0 or later:        |".to_string();
+            let result = "XX REM | Brute-forces passwords on UM vIX.0 systems. |\nXXV REM | Compile with Qvickbasic VII.0 or later: |".to_string();
+            assert_eq!(convert(lines, ConvertMode::Roman), result);
+        }
+
+        #[test]
+        fn converts_multiple_lines_to_decimal() {
+            let lines = "XX       REM  | Brute-forces passwords on UM vIX.0 systems.    |\nXXV      REM  | Compile with Qvickbasic VII.0 or later:        |".to_string();
+            let result = "20 REM | Brute-forces passwords on UM vIX.0 systems. |\n25 REM | Compile with Qvickbasic VII.0 or later: |".to_string();
+            assert_eq!(convert(lines, ConvertMode::Decimal), result);
+        }
 
         #[test]
         fn line_from_decimal_to_roman() {
