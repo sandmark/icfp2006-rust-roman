@@ -315,13 +315,13 @@ fn convert_line(line: &str, converter: impl Fn(Token) -> Token) -> String {
 }
 
 /// QvickBasic コード `s` を [ConvertMode] に従って数字表記を変換した [String] を返す。
-fn convert(s: String, mode: ConvertMode) -> String {
+fn convert(code: String, mode: ConvertMode) -> String {
     let converter = match mode {
         ConvertMode::Decimal => decimalize,
         ConvertMode::Roman => romanize,
     };
 
-    s.lines()
+    code.lines()
         .map(|l| convert_line(l, converter))
         .collect::<Vec<String>>()
         .join("\n")
